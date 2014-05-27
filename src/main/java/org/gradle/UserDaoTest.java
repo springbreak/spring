@@ -2,19 +2,22 @@ package org.gradle;
 
 import java.sql.SQLException;
 
-public class Main {
+public class UserDaoTest {
 
 	public static void main(String[] args) throws ClassNotFoundException, SQLException{
-		// TODO Auto-generated method stub
+
 		User user = new User();
 		
 		user.setId("anster");
-		user.setPassword("test-pw");
 		user.setName("Hoon");
+		user.setPassword("test-pw");
 		
-		Class.forName("com.mysql.jdbc.Driver");
+		UserDao dao = new UserDao();
+		dao.add(user);
+		
+		User user2 = dao.get(user.getId());
+		System.out.println(user2.getName());
 		
 		System.out.println(user.getName());
 	}
-
 }
