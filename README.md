@@ -10,7 +10,7 @@
 - **@Configuration** 은 이 클래스가 애플리케이션 컨텍스트 또는 빈 팩토리가 사용할 설정 정보임을 표시한다.
 - **@Bean** 은 오브젝트 생성을 담당하는 IoC 용 메소드라는 표시
 <br/>
-```
+```java
 @Configuration
 public class DaoFactory {
 
@@ -32,7 +32,7 @@ public class DaoFactory {
 <br/>
 - 이렇게 등록된 설정 정보는 ApplicationContext 에서 사용되고, getBeans 메소드를 통해 오브젝트를 생성한다.
 <br/>
-```
+```java
 ApplicationContext context =
 		new AnnotationConfigApplicationContext(DaoFactory.class);
 		
