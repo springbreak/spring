@@ -2,6 +2,9 @@ package org.gradle;
 
 import java.sql.SQLException;
 
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+
 public class UserDaoTest {
 
 	public static void main(String[] args) throws ClassNotFoundException, SQLException{
@@ -12,8 +15,10 @@ public class UserDaoTest {
 		user.setName("Hoon");
 		user.setPassword("test-pw");
 		
-		DaoFactory df = new DaoFactory();
-		UserDao dao = df.userDao();
+		ApplicationContext context =
+				new AnnotationConfigApplicationContext(DaoFactory.class);
+		
+		UserDao dao = context.getBean("userDao", UserDao.class);
 		
 		dao.add(user);
 		

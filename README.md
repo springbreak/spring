@@ -1,10 +1,44 @@
-## 1.4 제어의 역전 (IoC)
+## 1.5 스프링의 IoC
 
-- **UserDaoTest** 는 테스트 이외에도 **ConnectionMaker** 클래스를 만들어서 **UserDao** 에 삽입하는 기능도 가지고 있다. 이를 **DaoFactory** 라는 팩토리 클래스로 분리
-<br/><br/>
-- **DaoFactory** 를 이용하면 애플리케이션의 컴포넌트 역할을 하는 오브젝트와 애플리케이션의 구조를 결정하는 오브젝트를 분리할 수 있다. (!)
-<br/><br/>
-- **팩토리 패턴(Factory Pattern)** 은 구체적인 구현 클래스를 숨긴채, 클라이언트가 팩토리로부터 인터페이스를 받아 사용
+- 기본적으로 **build.gradle** 에 의존성으로  **compile 'org.springframework:spring-context:4.0.5.RELEASE'** 를 삽입하면 필요한 의존성을 자동으로 검색해 추가해 준다.
+  1. spring-context
+  2. spring-beans
+  3. spring-aop
+  4. spring-core
+  5. spring-expression
+<br/><br/>  
+- **@Configuration** 은 이 클래스가 애플리케이션 컨텍스트 또는 빈 팩토리가 사용할 설정 정보임을 표시한다.
+- **@Bean** 은 오브젝트 생성을 담당하는 IoC 용 메소드라는 표시
 <br/>
-<p align="center"><img src="http://www.oodesign.com/images/stories/factory%20noob%20implementation.gif"/></p>
+```
+@Configuration
+public class DaoFactory {
+
+	@Bean
+	public UserDao userDao() {
+		// TODO Auto-generated method stub
+		ConnectionMaker cm = getConnectionMaker();
+		UserDao dao = new UserDao(cm);
+		return dao;
+	}
+
+	@Bean
+	public ConnectionMaker getConnectionMaker() {
+		return new GConnectionMaker();
+	}
+
+}
+```
 <br/>
+- 이렇게 등록된 설정 정보는 ApplicationContext 에서 사용되고, getBeans 메소드를 통해 오브젝트를 생성한다.
+<br/>
+```
+ApplicationContext context =
+		new AnnotationConfigApplicationContext(DaoFactory.class);
+		
+UserDao dao = context.getBean("userDao", UserDao.class);
+```
+<br/><br/>
+- 애플리케이션 컨텍스트를 이용하면 구체적인 팩토리 클래스를 알 필요가 없어서 좋다.
+<br/><br/>
+
