@@ -6,15 +6,12 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-public class UserDao {
-
+public abstract class UserDao {
+	
 	public void add(User user) throws ClassNotFoundException, SQLException {
 		// TODO Auto-generated method stub
-		Class.forName("com.mysql.jdbc.Driver");
-		Connection c = DriverManager.getConnection(
-				"jdbc:mysql://localhost/springbreak", 
-				"spring", 
-				"break");
+		
+		Connection c = getConnection();
 		
 		String query = "INSERT INTO users(id, name, password) VALUES (?, ?, ?);";
 		PreparedStatement ps = c.prepareStatement(query);
@@ -27,11 +24,12 @@ public class UserDao {
 		c.close();
 	}
 
+	
+	public abstract Connection getConnection() throws ClassNotFoundException, SQLException;
+
 	public User get(String id) throws ClassNotFoundException, SQLException {
 		// TODO Auto-generated method stub
-		Class.forName("com.mysql.jdbc.Driver");
-		Connection c = DriverManager.getConnection(
-				"jdbc:mysql://localhost/springbreak", "spring", "break");
+		Connection c = getConnection();
 		
 		String query = "SELECT * from users WHERE id = ?";
 		

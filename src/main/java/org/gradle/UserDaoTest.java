@@ -12,7 +12,7 @@ public class UserDaoTest {
 		user.setName("Hoon");
 		user.setPassword("test-pw");
 		
-		UserDao dao = new UserDao();
+		UserDao dao = new GUserDao();
 		dao.add(user);
 		
 		User user2 = dao.get(user.getId());
