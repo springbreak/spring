@@ -12,7 +12,8 @@ public class UserDaoTest {
 		user.setName("Hoon");
 		user.setPassword("test-pw");
 		
-		UserDao dao = new GUserDao();
+		ConnectionMaker cm= new GConnectionMaker();
+		UserDao dao = new UserDao(cm);
 		dao.add(user);
 		
 		User user2 = dao.get(user.getId());

@@ -6,12 +6,18 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-public abstract class UserDao {
+public class UserDao {
+	
+	private ConnectionMaker connectionMaker;
+	
+	public UserDao(ConnectionMaker cm) {
+		connectionMaker = cm;
+	}
 	
 	public void add(User user) throws ClassNotFoundException, SQLException {
 		// TODO Auto-generated method stub
 		
-		Connection c = getConnection();
+		Connection c = connectionMaker.getConnection();
 		
 		String query = "INSERT INTO users(id, name, password) VALUES (?, ?, ?);";
 		PreparedStatement ps = c.prepareStatement(query);
@@ -24,12 +30,9 @@ public abstract class UserDao {
 		c.close();
 	}
 
-	
-	public abstract Connection getConnection() throws ClassNotFoundException, SQLException;
-
 	public User get(String id) throws ClassNotFoundException, SQLException {
 		// TODO Auto-generated method stub
-		Connection c = getConnection();
+		Connection c = connectionMaker.getConnection();
 		
 		String query = "SELECT * from users WHERE id = ?";
 		
