@@ -111,7 +111,6 @@ public boolean equals(Object obj) {
 하지만 **HashMap** 이나 **HashSet**, **HashTable** 과 같은 객체들을 사용하는 경우, 객체의 의미상의 동등성 비교를 위해 **hashCode()** 를 호출한다.
 <br/>
 ```java
-<<<<<<< HEAD
 Map<Person, Integer> map = new HashMap<Person, Integer>();
 map.put(p1, 1);
 map.put(p2, 1);
@@ -131,11 +130,7 @@ public int hashCode() {
 	
 	result = prime * result + ((name == null) ? 0 : name.hashCode());
 	result = prime * result + id;
-=======
-ApplicationContext context =
-		new AnnotationConfigApplicationContext(DaoFactory.class);
->>>>>>> 3efafc4386e9d217d42d02a4a7be27885aa36f9a
-		
+
 	return result;
 }
 ```
