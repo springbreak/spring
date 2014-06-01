@@ -4,6 +4,8 @@ import java.sql.SQLException;
 
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.springframework.context.support.GenericXmlApplicationContext;
 
 public class UserDaoTest {
 
@@ -15,19 +17,13 @@ public class UserDaoTest {
 		user.setName("Hoon");
 		user.setPassword("test-pw");
 		
-//		ApplicationContext context =
-//				new AnnotationConfigApplicationContext(DaoFactory.class);
-
 		ApplicationContext context =
-				new AnnotationConfigApplicationContext(CountingDaoFactory.class);
+				new GenericXmlApplicationContext("applicationContext.xml");
 		
 		UserDao dao = context.getBean("userDao", UserDao.class);
 		dao.add(user);
 		
 		User user2 = dao.get(user.getId());
 		System.out.println(user2.getName());
-		
-		CountingConnectionMaker ccm = context.getBean("connectionMaker", CountingConnectionMaker.class);
-		System.out.println(ccm.getCount());
 	}
 }

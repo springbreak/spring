@@ -5,18 +5,20 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import javax.sql.DataSource;
+
 public class UserDao {
 	
-	private ConnectionMaker connectionMaker;
+	private DataSource ds;
 	
-	public void setConnectionMaker(ConnectionMaker cm) {
-		this.connectionMaker = cm;
+	public void setDataSource(DataSource ds) {
+		this.ds = ds;
 	}
 	
 	public void add(User user) throws ClassNotFoundException, SQLException {
 		// TODO Auto-generated method stub
 		
-		Connection c = connectionMaker.getConnection();
+		Connection c = ds.getConnection();
 		
 		String query = "INSERT INTO users(id, name, password) VALUES (?, ?, ?);";
 		PreparedStatement ps = c.prepareStatement(query);
@@ -31,7 +33,7 @@ public class UserDao {
 
 	public User get(String id) throws ClassNotFoundException, SQLException {
 		// TODO Auto-generated method stub
-		Connection c = connectionMaker.getConnection();
+		Connection c = ds.getConnection();
 		
 		String query = "SELECT * from users WHERE id = ?";
 		

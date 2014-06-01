@@ -1,3 +1,3 @@
-## 1.7 의존관계 주입(DI)
+## 1.8 XML 설정과 DataSource
 
 <br/><br/>
