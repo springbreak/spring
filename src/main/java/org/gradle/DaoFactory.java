@@ -10,7 +10,8 @@ public class DaoFactory {
 	public UserDao userDao() {
 		// TODO Auto-generated method stub
 		ConnectionMaker cm = getConnectionMaker();
-		UserDao dao = new UserDao(cm);
+		UserDao dao = new UserDao();
+		dao.setConnectionMaker(cm);
 		return dao;
 	}
 

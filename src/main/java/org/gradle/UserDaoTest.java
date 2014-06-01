@@ -9,35 +9,25 @@ public class UserDaoTest {
 
 	public static void main(String[] args) throws ClassNotFoundException, SQLException{
 
-//		User user = new User();
-//		
-//		user.setId("anster");
-//		user.setName("Hoon");
-//		user.setPassword("test-pw");
-//		
-//		
-//		
-//		dao.add(user);
-//		
-//		User user2 = dao.get(user.getId());
-//		System.out.println(user2.getName());
-//		
-//		System.out.println(user.getName());
+		User user = new User();
 		
-		DaoFactory factory = new DaoFactory();
-		UserDao dao1= factory.userDao();
-		UserDao dao2= factory.userDao();
+		user.setId("anster");
+		user.setName("Hoon");
+		user.setPassword("test-pw");
 		
-		System.out.println(dao1);
-		System.out.println(dao2);
+//		ApplicationContext context =
+//				new AnnotationConfigApplicationContext(DaoFactory.class);
 
 		ApplicationContext context =
-				new AnnotationConfigApplicationContext(DaoFactory.class);
-
-		UserDao dao3 = context.getBean("userDao", UserDao.class);
-		UserDao dao4 = context.getBean("userDao", UserDao.class);
+				new AnnotationConfigApplicationContext(CountingDaoFactory.class);
 		
-		System.out.println(dao3);
-		System.out.println(dao4);
+		UserDao dao = context.getBean("userDao", UserDao.class);
+		dao.add(user);
+		
+		User user2 = dao.get(user.getId());
+		System.out.println(user2.getName());
+		
+		CountingConnectionMaker ccm = context.getBean("connectionMaker", CountingConnectionMaker.class);
+		System.out.println(ccm.getCount());
 	}
 }

@@ -1,7 +1,6 @@
 package org.gradle;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -10,8 +9,8 @@ public class UserDao {
 	
 	private ConnectionMaker connectionMaker;
 	
-	public UserDao(ConnectionMaker cm) {
-		connectionMaker = cm;
+	public void setConnectionMaker(ConnectionMaker cm) {
+		this.connectionMaker = cm;
 	}
 	
 	public void add(User user) throws ClassNotFoundException, SQLException {
