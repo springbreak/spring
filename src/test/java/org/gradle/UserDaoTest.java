@@ -2,14 +2,16 @@ package org.gradle;
 
 import java.sql.SQLException;
 
+import org.junit.Test;
+import static org.junit.Assert.*;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.context.support.GenericXmlApplicationContext;
+import static org.hamcrest.CoreMatchers.*;
 
 public class UserDaoTest {
-
-	public static void main(String[] args) throws ClassNotFoundException, SQLException{
+	
+	@Test
+	public void addAndGet() throws ClassNotFoundException, SQLException{
 
 		User user = new User();
 		
@@ -24,6 +26,7 @@ public class UserDaoTest {
 		dao.add(user);
 		
 		User user2 = dao.get(user.getId());
-		System.out.println(user2.getName());
+		
+		assertThat(user2.getName(), is(user.getName()));
 	}
 }
