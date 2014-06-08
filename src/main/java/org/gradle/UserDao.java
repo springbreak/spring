@@ -7,6 +7,8 @@ import java.sql.SQLException;
 
 import javax.sql.DataSource;
 
+import org.springframework.dao.EmptyResultDataAccessException;
+
 public class UserDao {
 	
 	private DataSource ds;
@@ -15,7 +17,31 @@ public class UserDao {
 		this.ds = ds;
 	}
 	
-	public void add(User user) throws ClassNotFoundException, SQLException {
+	public void deleteAll() throws SQLException {
+		Connection c = ds.getConnection();
+		
+		PreparedStatement ps = c.prepareStatement("delete from users");
+		ps.executeUpdate();
+		ps.close();
+		c.close();
+	}
+	
+	public int getCount() throws SQLException {
+		Connection c = ds.getConnection();
+		PreparedStatement ps = c.prepareStatement("select count(*) from users");
+		ResultSet rs = ps.executeQuery();
+		
+		rs.next();
+		int count = rs.getInt(1); 
+		
+		rs.close();
+		ps.close();
+		c.close();
+		
+		return count;
+	}
+	
+	public void add(User user) throws SQLException {
 		// TODO Auto-generated method stub
 		
 		Connection c = ds.getConnection();
@@ -31,7 +57,7 @@ public class UserDao {
 		c.close();
 	}
 
-	public User get(String id) throws ClassNotFoundException, SQLException {
+	public User get(String id) throws SQLException {
 		// TODO Auto-generated method stub
 		Connection c = ds.getConnection();
 		
@@ -39,13 +65,20 @@ public class UserDao {
 		
 		PreparedStatement ps = c.prepareStatement(query);
 		ps.setString(1, id);
+
+		User user = null;
 		
 		ResultSet rs = ps.executeQuery();
-		rs.next();
-		User user = new User();
-		user.setId(rs.getString("id"));
-		user.setName(rs.getString("name"));
-		user.setPassword(rs.getString("password"));
+		if ( rs.next() ) {
+			user = new User();
+			user.setId(rs.getString("id"));
+			user.setName(rs.getString("name"));
+			user.setPassword(rs.getString("password"));
+		}
+		
+		if (user == null) {
+			throw new EmptyResultDataAccessException(1);
+		}
 		
 		rs.close();
 		ps.close();
