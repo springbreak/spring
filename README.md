@@ -1,59 +1,40 @@
 
-## 2.4 Spring 을 이용한 테스트
+## 3.2 JDBC 예외 처리
 
-### ApplicationContext
-
-매번 테스트 오브젝트를 만들때 마다 `ApplicationContext` 를 만드는건 부담이다. 지금은 빈이 몇개 없지만, 몇백, 몇천개 되면 느려진다. 따라서 `@Test` 가 실행될 때 마다 새롭게 생성되는 모든 테스트 오브젝트가 ApplicationContext 를 공유하도록 해 보자.
+현재 만든 코드는 예외처리가 되어있지 않아 커넥션 풀을 반환하지 않고, `c.close()` 호출하지 않고 종료될 가능성이 있다. 그러나 JDBC 코드에 try/catch/finally 를 단순하게 적용하면 ~~암걸릴것같은~~ 무지막지한 코드가 생성된다.  
 
 ```java
-// add dependency 'org.springframework:spring-test:4.0.5.RELEASE'
+// finally block 만 이만큼
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations="/applicationContext.xml")
-public class UserDaoTest {
-	
-	@Autowired
-	private ApplicationContext context;
-	private UserDao dao;
-	
-	@Before
-	public void setUp() {
 
-		this.dao = context.getBean("userDao", UserDao.class);
-		
-		System.out.println(this.context);
-		System.out.println(this.dao);
-	}
-	
-	...
-
-// Result
-org.springframework.context.support.GenericApplicationContext@d70c109 
-org.gradle.UserDao@2df32bf7
-org.springframework.context.support.GenericApplicationContext@d70c109 
-org.gradle.UserDao@2df32bf7	
-
-```
-
-### Autowired
-
-`@Autoired` 은 컨텍스트 내에서 해당 변수와 일치하는 타입의 빈을 찾아 자동으로 DI 를 해준다 ~~오오~~ 그런데 앞에서 우리는 ApplicationContext 를 빈으로 등록하지 않았지만 `@Autoired` 가 먹혔다. 왜 그럴까? 스프링은 기본적으로 애플리케이션 컨텍스트 그 자신도 빈으로 등록한다. 사실 `@Autowired` 가 있으면 ApplicationContext 를 찾을 필요도 없다.
- 
-### Free-Container TEST
-
-컨테이너나 프레임워크가 있어야 DI 를 할 수 있는것은 아니다. 편해질 뿐. 우리가 직접 테스트 코드를 위한 관계 설정을 해 줄 수 있다.
-
-```java
-
-@Before
-public void setUp() {
-	dao = new UserDao();
-	DataSource dataSource = new SingleConnectionDataSource(
-		"jdbc:mysql://localhost/springtest", "springdev", "test", true);
-		
-		dao.setDataSource(dataSource);
+finally {            
+   if (rs != null) {
+        try {
+            rs.close();
+        } catch (SQLException e) {
+         LOG.warn("Failed to close rs", e);
+        }
+    }
+    if (st != null) {
+        try {
+            st.close();
+        } catch (SQLException e) { 
+         LOG.warn("Failed to close st", e);     
+        }
+    }
+    if (conn != null) {
+        try {
+            conn.close();
+        } catch (SQLException e) {
+         LOG.warn("Failed to close conn", e);
+        }
+    }
 }
-
 ```
 
-스프링은 침투적(Invasive) 기술이기 때문에 애플리케이션 코드에 API 가 등장한다. 스프링 없이 테스트할 수 있는 방법을 우선적으로 고려하자. 이 방법이 수행속도가 빠르고 코드가 간결하다.
+모든 JDBC 액션(CRUD) 에 이런 코드를 삽입할 순 없다. 중복도 문제고, 어느 한 곳에서 실수로 close 를 흘리면 찾기도 어렵다. 해결방법을 모색해 보자. 가장 먼저 해야 할 일은 변하지 않는 부분 (try/catch) 과 변하는 부분(query) 을 분리해야 한다.
+
+1. 변하지 않는 부분을 그대로 내버려 두고, 변하는 부분 (Query) 를 메소드화 한다. !?! 이상하다 중복되는 부분이 메소드화 되어야 하는데
+2. 그래도 일단 템플릿 메소드 패턴을 적용한다. DAO 를 상속하고 변하는 부분을 오버라이딩 해서 CRUD 각각 마다 클래스를 만든다. UserDaoDeleteAll, UserDaoGetCount... ?!? 파일이 몇개가 생기는거야?
+
+ 사실은 전략 패턴을 적용하는게 더 낫다. 다음 장에서 알아본다.
