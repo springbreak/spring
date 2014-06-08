@@ -1,44 +1,59 @@
 
-## 2.3 JUnit을 이용한 단위 테스트
-- **UserDaoTest** 테스트를 매번 직접 실행해야 하고, 테스트 결과를 눈으로 직접 확인해야 하므로 번거롭다.
-<br/><br/>
-- 테스트는 가능하다면 하나의 메소드만 검증하는것이 좋다.
-- 예외가 올바르게 던져지는 것도 JUnit 을 이용하면 검증할 수 있다. **@Test(expected=Exception.class)** 을 이용하자.
-- 네거티브 테스트부터 시작하자. ID 를 조회하는 DAO 메소드를 만든다면, ID 가 올바르게 던져지지 않는 테스트부터 작성할 것
+## 2.4 Spring 을 이용한 테스트
 
-### TDD (Test Driven Development)
+### ApplicationContext
 
-- 실패한 테스트를 성공시키기 위한 목적이 아닌 코드를 만들지 않는 것이 원칙
-- TDD 를 하면 자연스럽게 단위 테스트를 만들 수 있다.
-- 빠르게 오류를 발견해 이른시기에 대처가 가능하다
-- 엔터프라이즈 환경에서 애플리케이션의 테스트를 만들기가 어려**웠**으나 스프링은 엔터프라이즈 애플리케이션의 테스트를 빠르고 쉽게 작성할 수 있는 매우 편리한 기능을 많이 제공한다.
+매번 테스트 오브젝트를 만들때 마다 `ApplicationContext` 를 만드는건 부담이다. 지금은 빈이 몇개 없지만, 몇백, 몇천개 되면 느려진다. 따라서 `@Test` 가 실행될 때 마다 새롭게 생성되는 모든 테스트 오브젝트가 ApplicationContext 를 공유하도록 해 보자.
 
-### Fixture
+```java
+// add dependency 'org.springframework:spring-test:4.0.5.RELEASE'
 
-테스트를 수행하는데 필요한 정보나 오브젝트를 **픽스쳐(fixture)** 라고 한다. 픽스쳐는 여러 테스트에서 반복적으로 사용되므로 **@Before** 메소드를 이용해 한번에 초기화 하는편이 낫다.
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration(locations="/applicationContext.xml")
+public class UserDaoTest {
+	
+	@Autowired
+	private ApplicationContext context;
+	private UserDao dao;
+	
+	@Before
+	public void setUp() {
+
+		this.dao = context.getBean("userDao", UserDao.class);
+		
+		System.out.println(this.context);
+		System.out.println(this.dao);
+	}
+	
+	...
+
+// Result
+org.springframework.context.support.GenericApplicationContext@d70c109 
+org.gradle.UserDao@2df32bf7
+org.springframework.context.support.GenericApplicationContext@d70c109 
+org.gradle.UserDao@2df32bf7	
+
+```
+
+### Autowired
+
+`@Autoired` 은 컨텍스트 내에서 해당 변수와 일치하는 타입의 빈을 찾아 자동으로 DI 를 해준다 ~~오오~~ 그런데 앞에서 우리는 ApplicationContext 를 빈으로 등록하지 않았지만 `@Autoired` 가 먹혔다. 왜 그럴까? 스프링은 기본적으로 애플리케이션 컨텍스트 그 자신도 빈으로 등록한다. 사실 `@Autowired` 가 있으면 ApplicationContext 를 찾을 필요도 없다.
+ 
+### Free-Container TEST
+
+컨테이너나 프레임워크가 있어야 DI 를 할 수 있는것은 아니다. 편해질 뿐. 우리가 직접 테스트 코드를 위한 관계 설정을 해 줄 수 있다.
 
 ```java
 
-private UserDao dao; 
-
 @Before
 public void setUp() {
-	ApplicationContext ct = 
-		new GenericXmlApplicationContext("applicationContext.xml");
+	dao = new UserDao();
+	DataSource dataSource = new SingleConnectionDataSource(
+		"jdbc:mysql://localhost/springtest", "springdev", "test", true);
 		
-		this.dao = ct.getBean("userDao", UserDao.class);
+		dao.setDataSource(dataSource);
 }
+
 ```
 
-### Test 실행 순서
-
-1. 테스트 클래스에서 @Test 가 붙은 public, void, non-parameter 테스트 메소드를 모두 찾는다.
-2. 테스트 클래스의 오브젝트를 하나 만들고
-3. @Before 이 붙은 메소드가 있으면 실행한다
-4. @Test 메소드를 **하나** 호출, 결과를 저장
-5. @After 가 있으면 실행
-6. 나머지 테스트 메소드에 대해 2~5번 반복
-7. 모든 테스트 결과를 종합해서 돌려줌
-
-**JUnit 은 모든 @Test 가 독립적으로 실행되는것을 보장하기 위해 매 테스트 클래스의 오브젝트를 새로 만든다**
-
+스프링은 침투적(Invasive) 기술이기 때문에 애플리케이션 코드에 API 가 등장한다. 스프링 없이 테스트할 수 있는 방법을 우선적으로 고려하자. 이 방법이 수행속도가 빠르고 코드가 간결하다.
