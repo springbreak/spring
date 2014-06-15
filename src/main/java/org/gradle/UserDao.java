@@ -13,97 +13,21 @@ import org.springframework.dao.EmptyResultDataAccessException;
 public class UserDao {
 	
 	@Autowired
+	private JdbcContext jdbcContext;
+	
+	@Autowired
 	private DataSource ds;
 	
-	public void setDataSource(DataSource ds) {
-		this.ds = ds;
-	}
-	
-	public void jdbcContextWithoutResultSet(StatementStrategy st) throws SQLException {
-
-		Connection c = null;
-		PreparedStatement ps = null;
-
-		try {
-			c = ds.getConnection();
-			ps = st.createStatement(c);
-			ps.executeUpdate();
-			
-		} catch (SQLException e) {
-			throw e;
-			
-		} finally {
-			if (ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					throw e;
-				}
-			}
-			
-			if (c != null) {
-				try {
-					c.close();
-				} catch (SQLException e) {
-					throw e;
-				}
-			}
-		}
-		
-		ps.close();
-		c.close();
-	}
+//	public void setDataSource(DataSource ds) {
+//		this.ds = ds;
+//	}
 	
 	public void deleteAll() throws SQLException {
-		jdbcContextWithoutResultSet( (c) -> c.prepareStatement("delete from users") );
-	}
-	
-	public int jdbcContextWithResultset(StatementStrategy st) throws SQLException{
-		Connection c = null;
-		PreparedStatement ps = null;
-		ResultSet rs = null;
-		
-		try {
-
-			c = ds.getConnection();
-			ps = st.createStatement(c);
-			rs = ps.executeQuery();
-
-			rs.next();
-			int count = rs.getInt(1); 
-			return count;
-		} catch (Exception e) {
-			throw e;
-
-		} finally {
-			if (rs != null) {
-				try {
-					rs.close();
-				} catch (Exception e) {
-					throw e;
-				}
-			}
-			
-			if (ps != null) {
-				try {
-					ps.close();
-				} catch (Exception e) {
-					throw e;
-				}
-			}
-			
-			if (c != null) {
-				try {
-					c.close();
-				} catch (Exception e) {
-					throw e;
-				}
-			}
-		}
+		jdbcContext.workWithoutResultSet( (c) -> c.prepareStatement("delete from users") );
 	}
 	
 	public int getCount() throws SQLException {
-		return jdbcContextWithResultset( 
+		return jdbcContext.workWithResultset( 
 				(Connection c) -> c.prepareStatement("select count(*) from users"));
 	}
 
@@ -124,7 +48,6 @@ public class UserDao {
 		ps.close();
 		c.close();
 	}
-
 
 	public User get(String id) throws SQLException {
 		// TODO Auto-generated method stub

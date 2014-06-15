@@ -29,7 +29,6 @@ public class UserDaoTest {
 	@Test
 	public void addAndGet() throws ClassNotFoundException, SQLException{
 
-		
 		User user = new User();
 		user.setId("anster");
 		user.setName("Hoon");

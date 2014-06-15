@@ -12,4 +12,9 @@
 <bean id="userDao" class="org.gradle.UserDao">
 </bean>
 
+<bean id="jdbcContext" class="org.gradle.JdbcContext">
+</bean>
+
 </beans>
+
+
