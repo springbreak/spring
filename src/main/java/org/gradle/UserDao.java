@@ -18,10 +18,6 @@ public class UserDao {
 	@Autowired
 	private DataSource ds;
 	
-//	public void setDataSource(DataSource ds) {
-//		this.ds = ds;
-//	}
-	
 	public void deleteAll() throws SQLException {
 		jdbcContext.workWithoutResultSet( (c) -> c.prepareStatement("delete from users") );
 	}
@@ -32,21 +28,15 @@ public class UserDao {
 	}
 
 	public void add(User user) throws SQLException {
-		// TODO Auto-generated method stub
-		
-		Connection c = null;
-		PreparedStatement ps = null;
-		c = ds.getConnection();
-
-		String query = "INSERT INTO users(id, name, password) VALUES (?, ?, ?);";
-		ps = c.prepareStatement(query);
-		ps.setString(1, user.getId());
-		ps.setString(2, user.getName());
-		ps.setString(3, user.getPassword());
-
-		ps.executeUpdate();
-		ps.close();
-		c.close();
+		jdbcContext.workWithoutResultSet( (c) -> {
+			String query = "INSERT INTO users(id, name, password) VALUES (?, ?, ?);";
+			PreparedStatement ps = c.prepareStatement(query);
+			ps.setString(1, user.getId());
+			ps.setString(2, user.getName());
+			ps.setString(3, user.getPassword());
+			
+			return ps;
+		});
 	}
 
 	public User get(String id) throws SQLException {
