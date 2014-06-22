@@ -1,168 +1,70 @@
 
-## 3.6 Spring JdbcTemplate
+## 4 예외와 JdbcTemplate 의 예외처리 
 
-`JdbcContext` 처럼 예외처리에 대한 템플릿을 가지고 있는 Built-in 클래스가 있다. ~~여태까지 무슨짓을 한건가~~ `org.springframework.jdbc.core.JdbcTemplate` 다
+- 예외는 잡기만 해선 안된다. 반드시 처리해야 하고 통보되어야 한다.
 
-```java
-// UserDao.java
-	@Autowired
-	private JdbcTemplate jt;
-```
-
-```xml
-// test-applicationContext.xml
-<bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
-	<property name="dataSource" ref="dataSource"></property>
-</bean>
-```
-
-### jdbcTemplate.update
-
-`update` 함수는 기본적으로 `PreparedStatementCreate` 를 받아, `createPreparedStatement(Connection c)` 를 호출한다. 
-
-```java
-public void deleteAll() throws SQLException {
-	jt.update(new PreparedStatementCreator() {
-		
-		@Override
-		public PreparedStatement createPreparedStatement(Connection con)
-				throws SQLException {
-			// TODO Auto-generated method stub
-			return con.prepareStatement("delete from users");
-		}
-	});
-}
-```
-
-그러나 `PreparedStatement` 에 별다른 작업을 해주지 않을 경우 오버라이딩 되어 쿼리 스트링만 인자로 받는 함수가 오버로딩되어 있다.
-
-```java
-public void deleteAll() throws SQLException {
-	jt.update("delete from users");
-}
-```
-
-Update 쿼리에 추가적인 인자가 필요할 경우 다음과 같이 사용할 수 있다. `Usedao.add()` 
-
-```java
-public void add(User user) throws SQLException {
-	jt.update("INSERT INTO users(id, name, password) VALUES (?, ?, ?);",
-			user.getId(), user.getName(), user.getPassword());
-}
-```
-
-### jdbcTemplate.queryForInt()
-
-`ResultSet` 이 필요한 경우 `JdbcTemplate.query()` 를 이용할 수 있다. `getCount()` 처럼 Int 타입이 필요한 경우 특별히 `JdbcTemplate.queryForInt()` 를 사용하면 된다. 먼저 `query()` 를 이용한 샘플을 보면 첫번째 인자로  `PreparedStatement` 를 돌려주는 콜백 오브젝트를, 두번째 인자로 `ResultSet` 를 조작하는 콜백 오브젝트를 파라미터로 넘겨준다.
-
-```java
-public int getCount() throws SQLException {
-
-	return jt.query(new PreparedStatementCreator() {
-		@Override
-		public PreparedStatement createPreparedStatement(Connection con)
-				throws SQLException {
-			return con.prepareStatement("select count(*) from users");
-		}
-	}, new ResultSetExtractor<Integer>() {
-		@Override
-		public Integer extractData(ResultSet rs) throws SQLException,
-				DataAccessException {
-			rs.next();
-			return rs.getInt(1);
-		}
-	});
-}
-```
-
-`queryForInt()` 를 사용하게 되면, 훨씬 심플해진다.
-
-```java
-public int getCount() throws SQLException {
-	return jt.queryForInt("select count(*) from users");
-}
-```
-
-### jdbcTemplate.queryForObject()
-
-그런데 사실 `JdbcTemplate.queryForObject` 는 Deprecated 되었다.
-
-```java
-public int getCount() throws SQLException {
-	return jt.queryForObject("select count(*) from users", Integer.class);
-}
-```
-
-`UserDao.get` 의 경우에도 `queryForObject` 를 이용해서 오브젝트를 가져올 수 있다.
-
-```java
-public User get(String id) throws SQLException {
-
-	return jt.queryForObject(
-			"SELECT * from users WHERE id = ?",
-			new Object[] {id},
-			new RowMapper<User>() {
-				@Override
-				public User mapRow(ResultSet rs, int rowNum)
-						throws SQLException {
-
-					User user = new User();
-					user.setId(rs.getString("id"));
-					user.setName(rs.getString("name"));
-					user.setPassword(rs.getString("password"));
-					return user;
-				}});
-}
-
-// lambda version
-public User get(String id) throws SQLException {
-
-	return jt.queryForObject(
-			"SELECT * from users WHERE id = ?",
-			new Object[] {id},
-			(rs, rowNum) -> {
-				User user = new User();
-				user.setId(rs.getString("id"));
-				user.setName(rs.getString("name"));
-				user.setPassword(rs.getString("password"));
-				return user;
-			});
-}
-```
-
-`ResultSetExtractor` 은 한번만 호출되는 콜백 오브젝트인 반면 `RowMapper` 는 여러번 호출 될 수 있다. 
-
-### jdbcTemplate.query
-
-`query()` 는 기본적으로 `List<T>` 를 리턴한다. 따라서 `RowMapper` 가 N번 호출될 수 있다. 아래 `getAll()` 메소드에서 `RowMapper` 는 `Row` 수 만큼 호출되어 매번 `User` 를 리턴하고, 그것이 모여 `query` 가 끝나는 시점에  `List<User` 가 된다.
-
-```java
-public List<User> getAll() {
-	return jt.query(
-			"SELECT * FROM users",
-			(rs, rowNum) -> {
-				return new User(rs.getString(1), rs.getString(2), rs.getString(3));
-			});
-}
-```
+자바에서 throw 를 통해 발생시킬 수 있는 예외는 크게 3가지가 있다.
 
 
+- 애플리케이션 예외 : 로직상 발생하는 예외, 체크예외로 만들어서 처리하도록 ex) 잔고부족
+
+SQLException 은 99% 경우 애플리케이션단에서 복구 불가. 네트워크, DB 서버, 커넥션 풀, 문법 오류, 제약조건 위반을 어떻게 코드에서 해결? ID 중복 정도라면 모를까/ 따라서 jdbcTemplte 에선 기게적인 throws 선언이 등장하는것을 막기위해 runtime 예외로 전환.
+
+- 예외를 다른 것으로 바꿔 던지는 예외 전환의 목적은
+
+1. 런타임예외로 포장해서 굳이 필요하지 않은 catch/throws 제거
+2. 로우레벨 예외 좀 더 의미있고 추상화된 예외로 바꿔
+
+스프링의 jdbcTemplate 가 던지는 DataAccessExveption 은 일단 런타임 예외. 
 
 
+JDBC 는 자바를 이용해 DB에 접근하는 방법을 추상화되 API 형태로 정의해놓고, 각 DB 업체가 JDBC 표준을 따라 만들어진 드라이버를 제공하게 해줌. 따라서 자바 개발자들은 Resultset 등의 표준 인터페이스를 통해 기능을 사용. 일관된 기능을 이용해 개발 가능
 
 
+JDBC 의 한계
 
+1. 비표준 SQL
 
+-> DAO를 DB별로 만들거나 SQL 분리
+웹프로그램 페이징 쿼리?
 
+2. 호환성없는 SQL Exception 의 DB 에러정보
 
+DB마다 에러의 종류와 원인도 제각각 이므로 JDBC 는 그냥 SQL Exception 하나로 모두 담아버림. 
+근데 getErrorCode() 로 가져올 수 있는 DBpfjzhemrk DB 별로 모두 다름. 벤더마다 다른 에러코드이기 때문.
 
+MysqlErrorNumbers.EP_DUP_ENTRY 가 그 예
 
+그래서 SQLException 은 예외가 발생했을때 DB상태를 담은 SQL 상태 정보를 부가적으로 제공. 
+getSQLState 메소드로 상태정보를 가져올 수 있는데, 이건 DB 별로 다른 에러코드를 대신할 수 있도록
+SQL 상태코드 스펙을 따르도록 되어있음.
 
+근데 문제는 JDBC 드라이버에서 상태정보를 정확하게 만들어주지 않음. 
+그래서 이 상태코드를 믿을 수 없음.
 
+호환성 없는 에러코드와 표준을 잘 따르지 않는 상태코드를 가진 SQLException 만으로는 유연한 코드 작성 불가
 
+스프링은 SQLException 을 그냥 DataAccessException 으로 Runtime 화 하는게 아니라
+DB 에러코드를 이용해 적절히 서브클래싱해서 의미있는 예외 객체를 던짐.
 
+JDBC 도 4.0 도 되면서 SQLException 을 서브클래싱 한걸 던져주므로 
+좀 나아지긴 했지만 여전히 상태정보를 이용한다는점에서 좀 그럼.
 
+Spring 의 DataAccessException 은 DB 종류별 JDBC 만이 아니라
+JPA, 다른 ORM 에 대한 것도 제공하므로 조음.
 
+예를들어 
 
+public void add(User u) SQLException; // jdbc
+public void add(User u) HibernateException; // Hibernate
 
+Sprin
 
+- 예외는 복구하거나, 전달하거나, 적절한 예외로 전환되야 한다.
+- 애플리케이션의 로직을 담기위한 예외는 체크예외로 만든다
+- 복구할 수 없는 예외는 가능한 빨리 런타임 예외로 전환하자
+- SQLException 의 에러코드는 DB 종속적이므로, DB 독립적인 예외를 이용하자. 
+스프링은 DataAccessException 을 제공한다.
+
+DAO 를 데이터엑세스 기술에서 독립시키려면 인터페이스 도입과 런타임예외전환
+기술에 독립적인 추상화된 예외로 전환이 필요하다.

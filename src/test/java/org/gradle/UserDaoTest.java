@@ -6,10 +6,13 @@ import static org.junit.Assert.assertThat;
 import java.sql.SQLException;
 import java.util.List;
 
+import javax.sql.DataSource;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -20,6 +23,9 @@ public class UserDaoTest {
 	
 	@Autowired
 	private UserDao dao;
+	
+	@Autowired
+	private DataSource ds;
 	
 	@Before
 	public void setUp() {
@@ -52,6 +58,17 @@ public class UserDaoTest {
 		assertThat(dao.getCount(), is(0));
 		
 		dao.get("unknowl_id");
+	}
+	
+	@Test(expected=DuplicationUserIdException.class)
+	public void addUserFailure() {
+		
+		dao.deleteAll();
+		
+		User user1 = new User("first", "il", "pw1");
+		
+		dao.add(user1);
+		dao.add(user1);
 	}
 	
 	@Test
