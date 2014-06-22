@@ -29,20 +29,20 @@ public class UserDao {
 	@Autowired
 	private DataSource ds;
 
-	public void deleteAll() throws SQLException {
+	public void deleteAll() {
 		jt.update("delete from users");
 	}
 
-	public int getCount() throws SQLException {
+	public int getCount() {
 		return jt.queryForObject("select count(*) from users", Integer.class);
 	}
 
-	public void add(User user) throws SQLException {
+	public void add(User user) {
 		jt.update("INSERT INTO users(id, name, password) VALUES (?, ?, ?);",
 				user.getId(), user.getName(), user.getPassword());
 	}
 
-	public User get(String id) throws SQLException {
+	public User get(String id) {
 		return jt.queryForObject(
 				"SELECT * from users WHERE id = ?",
 				new Object[] {id},

@@ -57,6 +57,9 @@ public class UserDaoTest {
 	@Test
 	public void getAllTest() throws SQLException {
 		dao.deleteAll();
+		
+		List<User> users0 = dao.getAll();
+		assertThat(users0.size(), is(0));
 	
 		User user1 = new User("first", "il", "pw1");
 		User user2 = new User("second", "e", "pw2");
