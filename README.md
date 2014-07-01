@@ -1,70 +1,245 @@
 
-## 4 예외와 JdbcTemplate 의 예외처리 
+## 5.1 사용자 레벨 관리 기능 추가
 
-- 예외는 잡기만 해선 안된다. 반드시 처리해야 하고 통보되어야 한다.
+```mysql
+ALTER TABLE users ADD level int not null;
+ALTER TABLE users ADD login int not null;
+ALTER TABLE users ADD recommend int not null;
+```
 
-자바에서 throw 를 통해 발생시킬 수 있는 예외는 크게 3가지가 있다.
+사용자의 레벨을 업그레이드 하는 `upgradeLevels` 메소드는 어디 위치해야 할까? `User` Class 에 대한 비즈니스 로직을 담당하는 `UserSerivce` 에 위치할 수 있을것 같다.
+
+```java
+public void upgradeLevels() {
+	List<User> users = userDao.getAll();
+	
+	for(User u : users) {
+		Boolean changed = null;
+		
+		if (u.getLevel() == Level.BASIC && u.getLogin() >= 50) {
+			u .setLevel(Level.SILVER);
+			changed = true;
+		} else if (u.getLevel() == Level.SILVER && u.getRecommend() >= 30) {
+			u.setLevel(Level.GOLD);
+			changed = true;
+		} else if (u.getLevel() == Level.GOLD) {
+			changed = false;
+		} else {
+			changed = false;
+		}
+		
+		if (changed) {
+			userDao.update(u);
+		}
+	}
+}
+
+// Test Code for upgradeLevels()
+
+@Test
+public void upgradeLevels() {
+  userDao.deleteAll();
+   
+  for(User u : users) {
+    userDao.add(u);
+  }
+    
+  userService.upgradeLevels();
+    
+  checkLevel(users.get(0), Level.BASIC);
+  checkLevel(users.get(1), Level.SILVER);
+  checkLevel(users.get(2), Level.SILVER);
+  checkLevel(users.get(3), Level.GOLD);
+  checkLevel(users.get(4), Level.GOLD);
+  checkLevel(users.get(5), Level.GOLD);
+  
+}
+
+private void checkLevel(User user, Level expectedLevel) {
+  User userUpgraded = userDao.get(user.getId());
+    
+  assertThat(userUpgraded.getLevel(), is(expectedLevel));
+}
+``` 
+
+신규 사용자가 추가 되었을때, 초기 레벨이 설정되어 있지 않다면, BASIC 으로 세팅해주는 것도 비즈니스 로직을 담당하는 `UserService` 클래스에 추가해 보자.
+
+```java
+	public void add(User u) {
+	  if (u.getLevel() == null) { 
+	    u.setLevel(Level.BASIC);
+	  }
+	  
+	  userDao.add(u);
+	}
+	
+	// Test for UserService.add()
+  public void add() {
+    userDao.deleteAll();
+    
+    User userWithLevel = users.get(4);
+    User userWithoutLevel = users.get(0);
+    userWithoutLevel.setLevel(null);
+    
+    userService.add(userWithLevel);
+    userService.add(userWithoutLevel);
+    
+    assertThat(userWithLevel.getLevel(), is(userWithLevel.getLevel()));
+    assertThat(userWithoutLevel.getLevel(), is(Level.BASIC));
+  }
+```
+
+이쯤 와서 보니, `UserService.upgradeLevels()` 메소드의 로직이 만족스럽지 않다. 현재 레벨을 검사하는 부분과 업그레이드 조건을 검사하는 부분이 섞여 있고, 새로운 레벨을 추가하면 If 블럭이 늘어나니 버그가 생기기 쉽다. 
+
+**항상 이 코드가 변화에 취약한가 생각해보자.**
+
+또한 `User` 객체의 속성을 변경하는 코드가 `UserService` 에 있기 보다는 `UserService` 가 `User` 에게 속성을 변경해 달라고 요청하는것이 적합하다. 
+
+**항상 이 코드가 여기에 위치해야 하는가 생각해보자.**
+
+`UserService` 는 `User` 에게 업그레이드가 가능한지 검사를 요청하고, 그 결과값을 받아 다시 업그레이드를 요청하도록 하고, `User` 가 직접 다음 단계의 레벨을 가지도록 하지 말고, 그 정보는 `Level` 이 가질 수 있도록 하면 코드는 아래와 같다.
+
+```java
+
+// Level.java
+public enum Level {
+	GOLD(3, null), SILVER(2, GOLD), BASIC(1, SILVER);
+
+	private final int value;
+	private final Level next;
+
+	Level(int value, Level next) {
+		this.value = value;
+		this.next = next;
+	}
+
+	public int intValue() {
+		return this.value;
+	}
+	
+	public Level nextLevel() {
+	  return this.next;
+	}
+
+	public static Level valueOf(int value) {
+		switch(value) {
+			case 1: return BASIC;
+			case 2: return SILVER;
+			case 3: return GOLD;
+			default: throw new AssertionError("Unknowl value: " + value);
+		}
+	}
+}
+
+// User.java
+
+  public boolean canUpgradeLevel() {
+    
+    Level currentLevel = this.getLevel();
+    
+    switch(currentLevel) {
+      case BASIC: return (this.getLogin() >= 50);
+      case SILVER: return (this.getRecommend() >= 30);
+      case GOLD: return false;
+      default: throw new IllegalArgumentException("Unknowl Level :" +
+          currentLevel);
+    }
+  }
+
+  public void upgradeLevel() {
+    Level nextLevel = this.level.nextLevel();
+    
+    if (nextLevel == null) {
+      throw new IllegalArgumentException(this.level + " 은 업그레이드가 불가능합니다.");
+    } else {
+      this.level = nextLevel;
+    }
+    
+  }
+  
+// UserService.java
+	public void upgradeLevels() {
+	  List<User> users = userDao.getAll();
+	  
+	  for(User u : users) {
+	    if (u.canUpgradeLevel()) {
+	      upgradeLevel(u);
+	    }
+	  }
+	  
+	}
+
+  private void upgradeLevel(User u) {
+    u.upgradeLevel();
+    userDao.update(u);
+  }
+```
+
+레벨이 업그레이드가 될 경우, 로그를 남기거나, 관리자에게 통지하는 등의 작업을 할 수가 있으므로 메소드로 분리하는 편이 낫다. 그리고 한가지 더 변경에 취약한 부분이 있다. `UserService` 에서 레벨 변경 조건을 숫자로 지정한 부분이다.
+
+```java
+  public boolean canUpgradeLevel(User u) {
+    
+    Level currentLevel = u.getLevel();
+    
+    switch(currentLevel) {
+      case BASIC: return (u.getLogin() >= 50);
+      case SILVER: return (u.getRecommend() >= 30);
+      case GOLD: return false;
+      default: throw new IllegalArgumentException("Unknowl Level :" +
+          currentLevel);
+    }
+  }
+```
+
+다음과 같이 `UserService` 에 상수로 만들어 주고 사용하자.
+
+```java
+// UserService
+
+public class UserService {
+  
+  public static final int MIN_LOGIN_COUNT_FOR_SILVER = 50;
+  public static final int MIN_RECOMMEND_COUNT_FOR_GOLD = 30;
+  
+  public boolean canUpgradeLevel(User u) {
+    
+    Level currentLevel = u.getLevel();
+    
+    switch(currentLevel) {
+      case BASIC: return (u.getLogin() >= MIN_LOGIN_COUNT_FOR_SILVER);
+      case SILVER: return (u.getRecommend() >= MIN_RECOMMEND_COUNT_FOR_GOLD);
+      case GOLD: return false;
+      default: throw new IllegalArgumentException("Unknown Level :" +
+          currentLevel);
+    }
+  }
+  
+  
+// UserServiceTest
+import static org.gradle.service.UserService.MIN_LOGIN_COUNT_FOR_SILVER;
+import static org.gradle.service.UserService.MIN_RECOMMEND_COUNT_FOR_GOLD;
+
+  @Before
+  public void setUp() {
+    users = Arrays.asList( 
+        new User("basic1", "name1", "p1", Level.BASIC, MIN_LOGIN_COUNT_FOR_SILVER-1, 0),
+        new User("basic2", "name2", "p2", Level.BASIC, MIN_LOGIN_COUNT_FOR_SILVER, 0),
+        new User("silver1", "name3", "p3", Level.SILVER, 60, MIN_RECOMMEND_COUNT_FOR_GOLD-1),
+        new User("silver2", "name4", "p4", Level.SILVER, 59, MIN_RECOMMEND_COUNT_FOR_GOLD),
+        new User("silver3", "name5", "p5", Level.SILVER, 60, MIN_RECOMMEND_COUNT_FOR_GOLD),
+        new User("gold", "name6", "p6", Level.GOLD, 100, 100));
+  }  
+```
+
+사실 이 정책 부분도 변경이 가능하다. 그럴때 마다 상수값을 수정하거나 추가하는 것이 아니라, UserServicePolicy 와 같은 인터페이스를 만들어 DI 를 해주며 정책을 바꿔가면서 프로그램을 구동할 수 있다.
+
+```java
+interface UserServicePolicy {
+  public boolean canUpgradeLevel();
+  public void upgradeLevel();
+}
+```
 
 
-- 애플리케이션 예외 : 로직상 발생하는 예외, 체크예외로 만들어서 처리하도록 ex) 잔고부족
 
-SQLException 은 99% 경우 애플리케이션단에서 복구 불가. 네트워크, DB 서버, 커넥션 풀, 문법 오류, 제약조건 위반을 어떻게 코드에서 해결? ID 중복 정도라면 모를까/ 따라서 jdbcTemplte 에선 기게적인 throws 선언이 등장하는것을 막기위해 runtime 예외로 전환.
-
-- 예외를 다른 것으로 바꿔 던지는 예외 전환의 목적은
-
-1. 런타임예외로 포장해서 굳이 필요하지 않은 catch/throws 제거
-2. 로우레벨 예외 좀 더 의미있고 추상화된 예외로 바꿔
-
-스프링의 jdbcTemplate 가 던지는 DataAccessExveption 은 일단 런타임 예외. 
-
-
-JDBC 는 자바를 이용해 DB에 접근하는 방법을 추상화되 API 형태로 정의해놓고, 각 DB 업체가 JDBC 표준을 따라 만들어진 드라이버를 제공하게 해줌. 따라서 자바 개발자들은 Resultset 등의 표준 인터페이스를 통해 기능을 사용. 일관된 기능을 이용해 개발 가능
-
-
-JDBC 의 한계
-
-1. 비표준 SQL
-
--> DAO를 DB별로 만들거나 SQL 분리
-웹프로그램 페이징 쿼리?
-
-2. 호환성없는 SQL Exception 의 DB 에러정보
-
-DB마다 에러의 종류와 원인도 제각각 이므로 JDBC 는 그냥 SQL Exception 하나로 모두 담아버림. 
-근데 getErrorCode() 로 가져올 수 있는 DBpfjzhemrk DB 별로 모두 다름. 벤더마다 다른 에러코드이기 때문.
-
-MysqlErrorNumbers.EP_DUP_ENTRY 가 그 예
-
-그래서 SQLException 은 예외가 발생했을때 DB상태를 담은 SQL 상태 정보를 부가적으로 제공. 
-getSQLState 메소드로 상태정보를 가져올 수 있는데, 이건 DB 별로 다른 에러코드를 대신할 수 있도록
-SQL 상태코드 스펙을 따르도록 되어있음.
-
-근데 문제는 JDBC 드라이버에서 상태정보를 정확하게 만들어주지 않음. 
-그래서 이 상태코드를 믿을 수 없음.
-
-호환성 없는 에러코드와 표준을 잘 따르지 않는 상태코드를 가진 SQLException 만으로는 유연한 코드 작성 불가
-
-스프링은 SQLException 을 그냥 DataAccessException 으로 Runtime 화 하는게 아니라
-DB 에러코드를 이용해 적절히 서브클래싱해서 의미있는 예외 객체를 던짐.
-
-JDBC 도 4.0 도 되면서 SQLException 을 서브클래싱 한걸 던져주므로 
-좀 나아지긴 했지만 여전히 상태정보를 이용한다는점에서 좀 그럼.
-
-Spring 의 DataAccessException 은 DB 종류별 JDBC 만이 아니라
-JPA, 다른 ORM 에 대한 것도 제공하므로 조음.
-
-예를들어 
-
-public void add(User u) SQLException; // jdbc
-public void add(User u) HibernateException; // Hibernate
-
-Sprin
-
-- 예외는 복구하거나, 전달하거나, 적절한 예외로 전환되야 한다.
-- 애플리케이션의 로직을 담기위한 예외는 체크예외로 만든다
-- 복구할 수 없는 예외는 가능한 빨리 런타임 예외로 전환하자
-- SQLException 의 에러코드는 DB 종속적이므로, DB 독립적인 예외를 이용하자. 
-스프링은 DataAccessException 을 제공한다.
-
-DAO 를 데이터엑세스 기술에서 독립시키려면 인터페이스 도입과 런타임예외전환
-기술에 독립적인 추상화된 예외로 전환이 필요하다.

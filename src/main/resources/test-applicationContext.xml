@@ -9,11 +9,9 @@
 	<property name="username" value="springdev"></property>
 	<property name="password" value="test"></property>
 </bean>
-<bean id="userDao" class="org.gradle.UserDaoJdbc">
-</bean>
+<bean id="userDao" class="org.gradle.dao.UserDaoJdbc"> </bean>
 
-<bean id="jdbcContext" class="org.gradle.JdbcContext">
-</bean>
+<bean id="userService" class="org.gradle.service.UserService"></bean>
 
 <bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
 	<property name="dataSource" ref="dataSource"></property>
