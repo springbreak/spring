@@ -4,7 +4,6 @@ import static org.gradle.service.UserService.MIN_LOGIN_COUNT_FOR_SILVER;
 import static org.gradle.service.UserService.MIN_RECOMMEND_COUNT_FOR_GOLD;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
 import java.util.Arrays;
 import java.util.List;
@@ -22,6 +21,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.transaction.PlatformTransactionManager;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations="/test-applicationContext.xml")
@@ -35,6 +35,9 @@ public class UserServiceTest {
   
   @Autowired
   DataSource dataSource;
+  
+  @Autowired
+  PlatformTransactionManager transactionManager;
 
   List<User> users;
 
@@ -82,20 +85,20 @@ public class UserServiceTest {
     checkLevel(users.get(5), false);
   }
   
-  
   @Rule
   public ExpectedException exception = ExpectedException.none();
   
   @Test
-  public void upgradeAllOrNothing() throws Exception {
+  public void upgradeAllOrNothing() {
 
     userDao.deleteAll();
-    
+   
     String upgradeStopPositionId = users.get(3).getId();
     
     UserService testUserService = new TestUserService(upgradeStopPositionId);
     testUserService.setUserDao(this.userDao);
     testUserService.setDataSource(this.dataSource);
+    testUserService.setTransactionManager(this.transactionManager);
     
     for(User u : users) {
       userDao.add(u);
