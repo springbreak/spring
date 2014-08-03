@@ -1,19 +1,23 @@
 package org.gradle.service;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-
 import static org.gradle.service.UserService.MIN_LOGIN_COUNT_FOR_SILVER;
 import static org.gradle.service.UserService.MIN_RECOMMEND_COUNT_FOR_GOLD;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import java.util.Arrays;
 import java.util.List;
+
+import javax.sql.DataSource;
 
 import org.gradle.dao.UserDao;
 import org.gradle.domain.Level;
 import org.gradle.domain.User;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -28,6 +32,9 @@ public class UserServiceTest {
  
   @Autowired
   UserDao userDao;
+  
+  @Autowired
+  DataSource dataSource;
 
   List<User> users;
 
@@ -58,7 +65,7 @@ public class UserServiceTest {
   }
 
   @Test
-  public void upgradeLevels() {
+  public void upgradeLevels() throws Exception {
     userDao.deleteAll();
     
     for(User u : users) {
@@ -73,7 +80,31 @@ public class UserServiceTest {
     checkLevel(users.get(3), true);
     checkLevel(users.get(4), true);
     checkLevel(users.get(5), false);
+  }
+  
+  
+  @Rule
+  public ExpectedException exception = ExpectedException.none();
+  
+  @Test
+  public void upgradeAllOrNothing() throws Exception {
+
+    userDao.deleteAll();
     
+    String upgradeStopPositionId = users.get(3).getId();
+    
+    UserService testUserService = new TestUserService(upgradeStopPositionId);
+    testUserService.setUserDao(this.userDao);
+    testUserService.setDataSource(this.dataSource);
+    
+    for(User u : users) {
+      userDao.add(u);
+    }
+    
+    exception.expect(TestUserServiceException.class);
+    testUserService.upgradeLevels();
+    
+    checkLevel(users.get(1), false);
   }
 
   private void checkLevel(User user, boolean upgraded) {
