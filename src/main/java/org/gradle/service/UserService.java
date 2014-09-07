@@ -8,7 +8,8 @@ import org.gradle.dao.UserDao;
 import org.gradle.domain.Level;
 import org.gradle.domain.User;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.mail.MailSender;
+import org.springframework.mail.SimpleMailMessage;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
@@ -17,6 +18,13 @@ public class UserService {
   
   public static final int MIN_LOGIN_COUNT_FOR_SILVER = 50;
   public static final int MIN_RECOMMEND_COUNT_FOR_GOLD = 30;
+  
+  @Autowired
+  private MailSender mailSender;
+  
+  public void setMailSender(MailSender ms) {
+    this.mailSender = ms;
+  }
 
 	@Autowired
 	private UserDao userDao;
@@ -85,5 +93,17 @@ public class UserService {
   protected void upgradeLevel(User u) {
     u.upgradeLevel();
     userDao.update(u);
+    sendUpgradeEmail(u);
+  }
+  
+  private void sendUpgradeEmail(User u) {
+	 // send email
+    SimpleMailMessage message = new SimpleMailMessage();
+    message.setTo(u.getEmail());
+    message.setFrom("admin@service.com");
+    message.setSubject("Level Upgraded");
+    message.setText("your level is upgraded to " + u.getLevel());
+    
+    mailSender.send(message);
   }
 }

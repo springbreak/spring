@@ -29,14 +29,15 @@ public class UserDaoJdbc implements UserDao{
 	public void add(User user) throws DuplicationUserIdException {
 
 		try {
-			jt.update("INSERT INTO users(id, name, password, level, login, recommend)" +
-					" VALUES (?, ?, ?, ?, ?, ?);",
+			jt.update("INSERT INTO users(id, name, password, level, login, recommend, email)" +
+					" VALUES (?, ?, ?, ?, ?, ?, ?);",
 			          user.getId(), 
 			          user.getName(),
 			          user.getPassword(),
 			          user.getLevel().intValue(),
 			          user.getLogin(),
-			          user.getRecommend());
+			          user.getRecommend(),
+			          user.getEmail());
 		} catch (DuplicateKeyException e) {
 			throw new DuplicationUserIdException(e);
 		}
@@ -65,7 +66,8 @@ public class UserDaoJdbc implements UserDao{
 		                	                rs.getString(3),
 		                	                Level.valueOf(rs.getInt(4)),
 		                	                rs.getInt(5),
-		                	                rs.getInt(6)); });
+		                	                rs.getInt(6),
+		                	                rs.getString(7)); });
 	}
 
 	@Override
