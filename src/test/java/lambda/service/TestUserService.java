@@ -1,9 +1,9 @@
 package lambda.service;
 
 import lambda.domain.User;
-import lambda.service.UserService;
+import lambda.service.UserServiceImpl;
 
-public class TestUserService extends UserService {
+public class TestUserService extends UserServiceImpl {
   
   private String id;
   
