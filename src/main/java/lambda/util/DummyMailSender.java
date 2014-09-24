@@ -1,4 +1,4 @@
-package org.gradle.util;
+package lambda.util;
 
 import org.springframework.mail.*;
 

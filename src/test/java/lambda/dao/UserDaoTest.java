@@ -1,4 +1,4 @@
-package org.gradle.dao;
+package lambda.dao;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -8,10 +8,11 @@ import java.util.List;
 
 import javax.sql.DataSource;
 
-import org.gradle.dao.DuplicationUserIdException;
-import org.gradle.dao.UserDao;
-import org.gradle.domain.Level;
-import org.gradle.domain.User;
+import lambda.dao.DuplicationUserIdException;
+import lambda.dao.UserDao;
+import lambda.domain.Level;
+import lambda.domain.User;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

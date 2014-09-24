@@ -1,6 +1,7 @@
-package org.gradle.service;
+package lambda.service;
 
-import org.gradle.domain.User;
+import lambda.domain.User;
+import lambda.service.UserService;
 
 public class TestUserService extends UserService {
   

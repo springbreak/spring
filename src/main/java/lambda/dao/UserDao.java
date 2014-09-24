@@ -1,8 +1,8 @@
-package org.gradle.dao;
+package lambda.dao;
 
 import java.util.List;
 
-import org.gradle.domain.User;
+import lambda.domain.User;
 
 public interface UserDao {
 	public void deleteAll();

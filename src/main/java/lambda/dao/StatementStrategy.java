@@ -1,4 +1,4 @@
-package org.gradle.dao;
+package lambda.dao;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;

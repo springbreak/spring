@@ -1,4 +1,4 @@
-package org.gradle.domain;
+package lambda.domain;
 
 public class User {
 	String id;

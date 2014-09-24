@@ -1,11 +1,12 @@
-package org.gradle.dao;
+package lambda.dao;
 
 import java.util.List;
 
 import javax.sql.DataSource;
 
-import org.gradle.domain.Level;
-import org.gradle.domain.User;
+import lambda.domain.Level;
+import lambda.domain.User;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;

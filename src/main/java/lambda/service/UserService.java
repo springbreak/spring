@@ -1,12 +1,13 @@
-package org.gradle.service;
+package lambda.service;
 
 import java.util.List;
 
 import javax.sql.DataSource;
 
-import org.gradle.dao.UserDao;
-import org.gradle.domain.Level;
-import org.gradle.domain.User;
+import lambda.dao.UserDao;
+import lambda.domain.Level;
+import lambda.domain.User;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.MailSender;
 import org.springframework.mail.SimpleMailMessage;

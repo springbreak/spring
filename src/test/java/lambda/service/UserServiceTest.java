@@ -1,7 +1,7 @@
-package org.gradle.service;
+package lambda.service;
 
-import static org.gradle.service.UserService.MIN_LOGIN_COUNT_FOR_SILVER;
-import static org.gradle.service.UserService.MIN_RECOMMEND_COUNT_FOR_GOLD;
+import static lambda.service.UserService.MIN_LOGIN_COUNT_FOR_SILVER;
+import static lambda.service.UserService.MIN_RECOMMEND_COUNT_FOR_GOLD;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -10,10 +10,12 @@ import java.util.List;
 
 import javax.sql.DataSource;
 
-import org.gradle.dao.UserDao;
-import org.gradle.domain.Level;
-import org.gradle.domain.User;
-import org.gradle.util.MockMailSender;
+import lambda.dao.UserDao;
+import lambda.domain.Level;
+import lambda.domain.User;
+import lambda.service.UserService;
+import lambda.util.MockMailSender;
+
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -140,6 +142,5 @@ public class UserServiceTest {
     } else {
       assertThat(userUpgraded.getLevel(), is(user.getLevel()));
     }
-
   }
 }

@@ -9,7 +9,7 @@
 	<property name="username" value="springrel"></property>
 	<property name="password" value="break"></property>
 </bean>
-<bean id="userDao" class="org.gradle.UserDao">
+<bean id="userDao" class="lambda.dao.UserDao">
 </bean>
 
 </beans>

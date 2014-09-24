@@ -1,4 +1,4 @@
-package org.gradle.dao;
+package lambda.dao;
 
 public class DuplicationUserIdException extends  RuntimeException {
 	

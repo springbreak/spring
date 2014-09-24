@@ -1,7 +1,9 @@
-package org.gradle.domain;
+package lambda.domain;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import lambda.domain.Level;
+import lambda.domain.User;
 
 import org.junit.Before;
 import org.junit.Test;

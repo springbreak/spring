@@ -1,4 +1,4 @@
-package org.gradle.util;
+package lambda.util;
 
 import java.util.ArrayList;
 import java.util.List;
