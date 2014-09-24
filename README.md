@@ -207,12 +207,12 @@ public class MessageFactoryBean implements FactoryBean<Message>{
 	}
 ```
 
-이제 `TxHandler` 를 이용해 다이나믹 프록시를 생성하는 팩토리 빈,  `TxProxyFactoryBean`을 만들어 보자. `TxHandler` 는 재활용 할 수 있는 다이나믹 프록시 인스턴스를 만들 수 있기 때문에, `implements FactoryBean<Object>` 를 선언했다. 즉, 만들어지는 다이나믹 프록시는 `Object` 타입이다. 다양한 타입의 다이나믹 프록시를 생성해야하므로, `Proxy.newProxyInstance` 의 세번째 인자로 들어갈 클래스 오브젝트를 입력 받기 위해 `serviceInterface` 라는 멤버 변수를 선언했다.  
+이제 `TxHandler` 를 이용해 다이나믹 프록시를 생성하는 팩토리 빈,  `TxFactoryBean`을 만들어 보자. `TxHandler` 는 재활용 할 수 있는 다이나믹 프록시 인스턴스를 만들 수 있기 때문에, `implements FactoryBean<Object>` 를 선언했다. 즉, 만들어지는 다이나믹 프록시는 `Object` 타입이다. 다양한 타입의 다이나믹 프록시를 생성해야하므로, `Proxy.newProxyInstance` 의 세번째 인자로 들어갈 클래스 오브젝트를 입력 받기 위해 `serviceInterface` 라는 멤버 변수를 선언했다.  
 
 ```java
-// TxProxyFactoryBean.java
+// TxFactoryBean.java
 
-public class TxProxyFactoryBean implements FactoryBean<Object>{
+public class TxFactoryBean implements FactoryBean<Object>{
 	
 	private Object target;
 	private String pattern;
@@ -264,7 +264,7 @@ public class TxProxyFactoryBean implements FactoryBean<Object>{
 이렇게 정의된 클래스를 다음과 같이 스프링 빈으로 등록한다.
 
 ```xml
-<bean id="userService" class="lambda.service.TxProxyFactoryBean">
+<bean id="userService" class="lambda.service.TxFactoryBean">
   <property name="target" ref="userServiceImpl"></property>
   <property name="txManager" ref="transactionManager"></property>
   <property name="pattern" value="upgradeLevels"></property>
@@ -279,39 +279,49 @@ public class TxProxyFactoryBean implements FactoryBean<Object>{
 ```java
 // in UserServiceTest.java
 
+...
+...
 	@Test
 	@DirtiesContext
-	public void upgradeLevels() throws Exception {
+	public void upgradeAllOrNothing() throws Exception {
+
 		userDao.deleteAll();
+
+		String upgradeStopPositionId = users.get(3).getId();
+
+		UserServiceImpl testUserService = new TestUserService(upgradeStopPositionId);
+		testUserService.setUserDao(this.userDao);
+		testUserService.setMailSender(mailSender);
+
+		TxFactoryBean txProxyFactoryBean = (TxFactoryBean)
+				context.getBean("&userService", TxFactoryBean.class);
+		
+		txProxyFactoryBean.setTarget(testUserService);
+		UserService txUserService = (UserService) txProxyFactoryBean.getObject();
+		
+		// below code will not work. 
+		// because 'target' should be 'testUserService`
+		// UserService txUserService = 
+		// (UserService) context.getBean("userService");
 
 		for (User u : users) {
 			userDao.add(u);
 		}
 
-		MockMailSender mockMailSender = new MockMailSender();
-		userService.setMailSender(mockMailSender);
-		userService.upgradeLevels();
+		exception.expect(TestUserServiceException.class);
+		txUserService.upgradeLevels();
 
-		checkLevel(users.get(0), false);
-		checkLevel(users.get(1), true);
-		checkLevel(users.get(2), false);
-		checkLevel(users.get(3), true);
-		checkLevel(users.get(4), true);
-		checkLevel(users.get(5), false);
-
-		List<String> request = mockMailSender.getRequests();
-		assertThat(request.size(), is(3));
-		assertThat(request.get(0), is(users.get(1).getEmail()));
-		assertThat(request.get(1), is(users.get(3).getEmail()));
-		assertThat(request.get(2), is(users.get(4).getEmail()));
+		checkLevel(users.get(1), false);
 	}
+...
+...
 ```
 
 테스트를 위해서 따로 테스트용 설정, 즉 테스트용 빈을 만들어 주거나, `TxProxyFactoryBean` 코드를 확장하는 방법이 있을수 있겠지만 여기서는 빈으로 등록된 `TxProxyFactoryBean` 을 `&` 을 이용해서 직접 가져 온 후 컨텍스트를 변경하는 방법을 사용했다.
 
-### Proxy Factory Bean : Pros and Cons
+### Factory Bean : Pros and Cons
 
-무엇보다도, 프록시 팩토리 빈의 장점은 **Target** 에 상관없이 재활용이 가능하다는 점이다. 예를 들어 `coreService` 인터페이스의 구현체인 `coreServiceImpl` 의 모든 메소드에 트랜잭션 기능이 필요하다면,
+무엇보다도, 팩토리 빈의 장점은 **Target** 에 상관없이 재활용이 가능하다는 점이다. 예를 들어 `coreService` 인터페이스의 구현체인 `coreServiceImpl` 의 모든 메소드에 트랜잭션 기능이 필요하다면,
 
 ```xml
 <bean id="coreService" class="service.CoreServiceImpl">
@@ -335,7 +345,7 @@ public class TxProxyFactoryBean implements FactoryBean<Object>{
 </bean>
 ``` 
 
-**데코레이터 패턴 방식의 프록시**는, 모든 메소드를 구현해야 하므로 번거롭고, 다수의 메소드에 코드 중복이 발생할 수 있었지만 **프록시 팩토리 빈** 은 이 두 가지 문제를 해결해 준다. 그럼에도 불구하고, **프록시 팩토리 빈** 은 두 가지 문제를 가지고 있다.
+**데코레이터 패턴 방식의 프록시**는, 모든 메소드를 구현해야 하므로 번거롭고, 다수의 메소드에 코드 중복이 발생할 수 있었지만 **팩토리 빈** 은 이 두 가지 문제를 해결해 준다. 그럼에도 불구하고, **팩토리 빈** 은 두 가지 문제를 가지고 있다.
 
 > (1). 한번에 다수의 클래스에 부가기능을 적용할 수 없다. 각 클래스마다 부가기능 갯수 만큼의 설정파일의 코드가 반복될 것이다. 만약 200개의 클래스가 있고, 3개의 부가기능을 모두 적용하려면 설정파일의 코드가 6줄이라 가정할 때, 18 * 200개 만큼의 코드가 반복이 되야한다. 하나의 타깃에 여러개의 부가기능을 적용할때도 같은 문제가 발생한다. 타깃과 인터페이스만 다른 코드가 중복된다. 코드 추가 없이 부가기능을 설정파일 변경만으로 추가할 수 있는건 놀랍지만, 여전히 문제가 있다.
 

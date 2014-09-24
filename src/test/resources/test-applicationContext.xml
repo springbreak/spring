@@ -11,7 +11,7 @@
 </bean>
 <bean id="userDao" class="lambda.dao.UserDaoJdbc"> </bean>
 
-<bean id="userService" class="lambda.service.TxProxyFactoryBean">
+<bean id="userService" class="lambda.service.TxFactoryBean">
   <property name="target" ref="userServiceImpl"></property>
   <property name="txManager" ref="transactionManager"></property>
   <property name="pattern" value="upgradeLevels"></property>
